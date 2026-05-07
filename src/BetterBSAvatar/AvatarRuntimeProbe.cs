@@ -67,7 +67,7 @@ namespace BetterBSAvatar
             if (Time.unscaledTime >= _nextAvatarSyncTime)
             {
                 _nextAvatarSyncTime = Time.unscaledTime + GetAvatarSyncIntervalSeconds();
-                EnsureAvatarVisible("timer", ShouldRefreshAvatarDataOnTimer());
+                EnsureAvatarVisible("timer", false);
             }
         }
 
@@ -183,6 +183,19 @@ namespace BetterBSAvatar
         internal void RequestCloneReload(string reason)
         {
             ScheduleCloneReload(reason, SettingsReloadDelaySeconds);
+        }
+
+        internal void RefreshAfterAvatarSave()
+        {
+            if (!Plugin.Config.Enabled)
+            {
+                return;
+            }
+
+            EnsureAvatarVisible("avatar-save", true);
+            _nextAvatarSyncTime = Time.unscaledTime + GetAvatarSyncIntervalSeconds();
+            LastStatus = "Clone refreshed after avatar save";
+            Log.Info(LastStatus);
         }
 
         private void ScheduleCloneReload(string reason, float delaySeconds)

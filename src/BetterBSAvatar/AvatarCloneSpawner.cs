@@ -33,15 +33,8 @@ namespace BetterBSAvatar
 
         private GameObject _clone;
         private AvatarDataModel _avatarDataModel;
-        private AvatarDataModel _subscribedAvatarDataModel;
         private BeatAvatarVisualController _visualController;
-        private readonly Action<AvatarData> _avatarDataChangedHandler;
         private bool _refreshRunning;
-
-        internal AvatarCloneSpawner()
-        {
-            _avatarDataChangedHandler = HandleAvatarDataChanged;
-        }
 
         internal bool HasClone => _clone != null;
 
@@ -81,7 +74,6 @@ namespace BetterBSAvatar
             GameObject oldClone = _clone;
             GameObject clone = UnityEngine.Object.Instantiate(source);
             _clone = clone;
-            UnsubscribeAvatarDataModel();
             _avatarDataModel = null;
             _visualController = null;
             _refreshRunning = false;
@@ -113,7 +105,6 @@ namespace BetterBSAvatar
 
         internal void InvalidateAvatarDataCache()
         {
-            UnsubscribeAvatarDataModel();
             _avatarDataModel = null;
         }
 
@@ -189,7 +180,6 @@ namespace BetterBSAvatar
 
             UnityEngine.Object.Destroy(_clone);
             _clone = null;
-            UnsubscribeAvatarDataModel();
             _avatarDataModel = null;
             _visualController = null;
             _refreshRunning = false;
@@ -236,7 +226,6 @@ namespace BetterBSAvatar
             if (_avatarDataModel == null)
             {
                 _avatarDataModel = AvatarDataModelFinder.FindFirst();
-                SubscribeToAvatarDataModel(_avatarDataModel);
             }
 
             return _avatarDataModel;
@@ -623,31 +612,6 @@ namespace BetterBSAvatar
             return false;
         }
 
-        private void HandleAvatarDataChanged(AvatarData avatarData)
-        {
-            if (_clone == null || _refreshRunning)
-            {
-                return;
-            }
-
-            AvatarDataModel dataModel = GetAvatarDataModel();
-            BeatAvatarVisualController visualController = GetVisualController();
-            if (dataModel == null || visualController == null)
-            {
-                return;
-            }
-
-            _refreshRunning = true;
-            try
-            {
-                RefreshVisualFromAvatarData(dataModel, visualController, avatarData, "avatar-data-changed");
-            }
-            finally
-            {
-                _refreshRunning = false;
-            }
-        }
-
         private void RefreshVisualFromAvatarData(
             AvatarDataModel dataModel,
             BeatAvatarVisualController visualController,
@@ -688,29 +652,6 @@ namespace BetterBSAvatar
             {
                 Log.Warn("AvatarDataModel.avatarData was null; clone visual refresh skipped.");
             }
-        }
-
-        private void SubscribeToAvatarDataModel(AvatarDataModel dataModel)
-        {
-            if (dataModel == null || ReferenceEquals(dataModel, _subscribedAvatarDataModel))
-            {
-                return;
-            }
-
-            UnsubscribeAvatarDataModel();
-            dataModel.didChangeAvatarDataEvent += _avatarDataChangedHandler;
-            _subscribedAvatarDataModel = dataModel;
-        }
-
-        private void UnsubscribeAvatarDataModel()
-        {
-            if (_subscribedAvatarDataModel == null)
-            {
-                return;
-            }
-
-            _subscribedAvatarDataModel.didChangeAvatarDataEvent -= _avatarDataChangedHandler;
-            _subscribedAvatarDataModel = null;
         }
 
         private static void CaptureHandTransformBaselineIfNeeded(GameObject clone)

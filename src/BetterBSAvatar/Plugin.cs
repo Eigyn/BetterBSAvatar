@@ -27,6 +27,7 @@ namespace BetterBSAvatar
         public void OnEnable()
         {
             Log.Info("Enabled");
+            AvatarSaveHooks.Install();
             CreateHost();
             AvatarRuntime.StartPluginCoroutine(SettingsRegistrar.RegisterWhenReady());
         }
@@ -35,6 +36,7 @@ namespace BetterBSAvatar
         public void OnDisable()
         {
             Log.Info("Disabled");
+            AvatarSaveHooks.Uninstall();
             SettingsRegistrar.Unregister();
             if (_host != null)
             {
