@@ -33,6 +33,4 @@ Standalone Quest/Android builds are not supported.
 
 ## License
 
-Copyright (c) 2026 Eigyn. All rights reserved.
-
-No source or binary redistribution license has been granted unless a separate `LICENSE` file is added to this repository.
+BetterBSAvatar is licensed under the MIT License. See `LICENSE` for details.
