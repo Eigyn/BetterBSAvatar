@@ -42,7 +42,7 @@ bin\Release\BetterBSAvatar.dll
 
 ## Install For Local Testing
 
-To copy the DLL and PDB into the configured Beat Saber `Plugins` folder:
+To copy the DLL into the configured Beat Saber `Plugins` folder:
 
 ```powershell
 & "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\MSBuild\Current\Bin\MSBuild.exe" .\BetterBSAvatar.csproj /p:Configuration=Release /p:GameDir="C:\Path\To\Beat Saber" /p:CopyToGame=true /m
