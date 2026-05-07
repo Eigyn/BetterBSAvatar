@@ -1,0 +1,13 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/beat-saber-modding-group/BSIPA-MetadataFileSchema/master/Schema.json",
+  "id": "BetterBSAvatar",
+  "name": "BetterBSAvatar",
+  "author": "Eigyn",
+  "version": "0.1.0",
+  "description": "Experimental Beat Saber 1.40.8 plugin that reuses the game's built-in multiplayer avatar runtime outside normal multiplayer contexts.",
+  "gameVersion": "1.40.8",
+  "dependsOn": {
+    "BSIPA": "^4.3.6",
+    "BeatSaberMarkupLanguage": "^1.12.5"
+  }
+}

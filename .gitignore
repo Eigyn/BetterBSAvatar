@@ -1,0 +1,21 @@
+bin/
+obj/
+.vs/
+.idea/
+*.user
+*.suo
+*.cache
+*.pdb
+*.dll
+*.log
+*.tmp
+
+# Local Beat Saber installs, copied dependencies, generated dumps, and scratch output.
+Beat Saber/
+Libs/
+Plugins/
+UserData/
+Logs/
+*.il
+*.res
+*.zip

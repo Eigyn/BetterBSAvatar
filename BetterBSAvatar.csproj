@@ -1,0 +1,122 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" Condition="false" />
+
+  <PropertyGroup>
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
+    <Platform Condition="'$(Platform)' == ''">AnyCPU</Platform>
+    <ProjectGuid>{764E7A44-89A7-4482-9F38-1B3D7F4FB7DE}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <RootNamespace>BetterBSAvatar</RootNamespace>
+    <AssemblyName>BetterBSAvatar</AssemblyName>
+    <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <LangVersion>7.3</LangVersion>
+    <GameDir Condition="'$(GameDir)' == '' and '$(BEAT_SABER_DIR)' != ''">$(BEAT_SABER_DIR)</GameDir>
+    <ManagedDir>$(GameDir)\Beat Saber_Data\Managed</ManagedDir>
+    <PluginDir>$(GameDir)\Plugins</PluginDir>
+    <LibsDir>$(GameDir)\Libs</LibsDir>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|AnyCPU'">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="IPA.Loader">
+      <HintPath>$(ManagedDir)\IPA.Loader.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(LibsDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BSML">
+      <HintPath>$(PluginDir)\BSML.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>$(ManagedDir)\UnityEngine.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(ManagedDir)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.InputLegacyModule">
+      <HintPath>$(ManagedDir)\UnityEngine.InputLegacyModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.PhysicsModule">
+      <HintPath>$(ManagedDir)\UnityEngine.PhysicsModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.XRModule">
+      <HintPath>$(ManagedDir)\UnityEngine.XRModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.AnimationModule">
+      <HintPath>$(ManagedDir)\UnityEngine.AnimationModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BeatSaber.AvatarCore">
+      <HintPath>$(ManagedDir)\BeatSaber.AvatarCore.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BeatSaber.BeatAvatarSDK">
+      <HintPath>$(ManagedDir)\BeatSaber.BeatAvatarSDK.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BeatSaber.BeatAvatarAdapter">
+      <HintPath>$(ManagedDir)\BeatSaber.BeatAvatarAdapter.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Main">
+      <HintPath>$(ManagedDir)\Main.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="HMLib">
+      <HintPath>$(ManagedDir)\HMLib.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="src\BetterBSAvatar\*.cs" />
+    <EmbeddedResource Include="manifest.json">
+      <LogicalName>$(AssemblyName).manifest.json</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Views\settings.bsml">
+      <LogicalName>$(AssemblyName).Views.settings.bsml</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+
+  <Target Name="ValidateGameDir" BeforeTargets="ResolveReferences">
+    <Error Condition="'$(GameDir)' == ''" Text="Set GameDir to your Beat Saber install path, or set the BEAT_SABER_DIR environment variable." />
+    <Error Condition="!Exists('$(ManagedDir)\Main.dll')" Text="GameDir does not look like a Beat Saber install: $(GameDir)" />
+  </Target>
+
+  <Target Name="CopyPluginToGame" AfterTargets="Build" Condition="'$(CopyToGame)' == 'true'">
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(PluginDir)" />
+    <Copy SourceFiles="$(TargetDir)$(TargetName).pdb" DestinationFolder="$(PluginDir)" Condition="Exists('$(TargetDir)$(TargetName).pdb')" />
+  </Target>
+</Project>

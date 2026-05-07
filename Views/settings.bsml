@@ -1,0 +1,11 @@
+﻿<scrollable-settings-container xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+                               xsi:schemaLocation='https://monkeymanboy.github.io/BSML-Docs/ https://monkeymanboy.github.io/BSML-Docs/BSMLSchema.xsd'>
+  <checkbox-setting text='Enable Avatar'
+                    value='enable-avatar'
+                    apply-on-change='true'
+                    hover-hint='Creates and tracks your built-in multiplayer avatar. Turning it off removes the clone.' />
+  <checkbox-setting text='Show in First Person'
+                    value='show-first-person'
+                    apply-on-change='true'
+                    hover-hint='Shows the avatar in the headset view. Turning it off hides it from first-person cameras.' />
+</scrollable-settings-container>
