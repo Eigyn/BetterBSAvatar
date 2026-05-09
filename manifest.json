@@ -3,7 +3,7 @@
   "id": "BetterBSAvatar",
   "name": "BetterBSAvatar",
   "author": "Eigyn",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Experimental Beat Saber 1.40.8 plugin that reuses the game's built-in multiplayer avatar runtime outside normal multiplayer contexts.",
   "gameVersion": "1.40.8",
   "dependsOn": {

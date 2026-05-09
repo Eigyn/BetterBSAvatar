@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace BetterBSAvatar
@@ -35,6 +36,8 @@ namespace BetterBSAvatar
         private AvatarDataModel _avatarDataModel;
         private BeatAvatarVisualController _visualController;
         private bool _refreshRunning;
+        private bool _loggedAvatarDataNotReady;
+        private bool _loggedNoSavedAvatarData;
 
         internal bool HasClone => _clone != null;
 
@@ -65,6 +68,13 @@ namespace BetterBSAvatar
 
         private bool TryCreateCloneFromBestSource()
         {
+            AvatarDataModel dataModel = GetReadyAvatarDataModel("clone");
+            if (dataModel == null)
+            {
+                return false;
+            }
+
+            AvatarData avatarData = dataModel.avatarData;
             GameObject source = FindBestSourceAvatar();
             if (source == null)
             {
@@ -73,19 +83,32 @@ namespace BetterBSAvatar
 
             GameObject oldClone = _clone;
             GameObject clone = UnityEngine.Object.Instantiate(source);
+            clone.SetActive(false);
             _clone = clone;
-            _avatarDataModel = null;
+            _avatarDataModel = dataModel;
             _visualController = null;
             _refreshRunning = false;
+            _loggedAvatarDataNotReady = false;
+            _loggedNoSavedAvatarData = false;
             _clone.name = CloneName;
             UnityEngine.Object.DontDestroyOnLoad(_clone);
             EnsureTrackingDriver(_clone);
             CaptureHandTransformBaselineIfNeeded(_clone);
             RestoreHandTransformBaseline(_clone);
+            BeatAvatarVisualController visualController = GetVisualController();
+            if (visualController == null || !RefreshVisualFromAvatarData(dataModel, visualController, avatarData, "clone"))
+            {
+                Log.Warn("Clone source was found, but saved avatar data could not be applied; clone creation delayed.");
+                _clone = oldClone;
+                _visualController = null;
+                UnityEngine.Object.Destroy(clone);
+                return false;
+            }
+
             ApplyPlacementMode(_clone);
             PrepareCloneForViewing(_clone, true);
+            _clone.SetActive(true);
             Log.Info($"Clone source: {DescribeGameObject(source)}");
-            RefreshCloneFromAvatarData("clone");
 
             if (oldClone != null)
             {
@@ -106,6 +129,8 @@ namespace BetterBSAvatar
         internal void InvalidateAvatarDataCache()
         {
             _avatarDataModel = null;
+            _loggedAvatarDataNotReady = false;
+            _loggedNoSavedAvatarData = false;
         }
 
         internal bool HasBrokenRendererMaterials()
@@ -148,7 +173,7 @@ namespace BetterBSAvatar
                 return;
             }
 
-            AvatarDataModel dataModel = GetAvatarDataModel();
+            AvatarDataModel dataModel = GetReadyAvatarDataModel(reason);
             BeatAvatarVisualController visualController = GetVisualController();
             if (dataModel == null || visualController == null)
             {
@@ -183,6 +208,8 @@ namespace BetterBSAvatar
             _avatarDataModel = null;
             _visualController = null;
             _refreshRunning = false;
+            _loggedAvatarDataNotReady = false;
+            _loggedNoSavedAvatarData = false;
         }
 
         private static GameObject FindBestSourceAvatar()
@@ -229,6 +256,84 @@ namespace BetterBSAvatar
             }
 
             return _avatarDataModel;
+        }
+
+        private AvatarDataModel GetReadyAvatarDataModel(string reason)
+        {
+            AvatarDataModel dataModel = GetAvatarDataModel();
+            if (dataModel == null)
+            {
+                LogAvatarDataNotReady(reason, "AvatarDataModel was not available yet.");
+                return null;
+            }
+
+            Task<bool> avatarCreatedTask;
+            try
+            {
+                avatarCreatedTask = dataModel.RequestIsAvatarCreatedAsync();
+            }
+            catch (Exception exception)
+            {
+                Log.Warn("Could not inspect Beat Saber avatar data load state.");
+                Log.Error(exception);
+                return null;
+            }
+
+            if (avatarCreatedTask != null)
+            {
+                if (!avatarCreatedTask.IsCompleted)
+                {
+                    LogAvatarDataNotReady(reason, "Saved avatar data is still loading.");
+                    return null;
+                }
+
+                if (avatarCreatedTask.IsCanceled || avatarCreatedTask.IsFaulted)
+                {
+                    Log.Warn("Saved avatar data did not finish loading cleanly.");
+                    if (avatarCreatedTask.Exception != null)
+                    {
+                        Log.Error(avatarCreatedTask.Exception);
+                    }
+
+                    return null;
+                }
+
+                if (!avatarCreatedTask.Result)
+                {
+                    if (!_loggedNoSavedAvatarData)
+                    {
+                        _loggedNoSavedAvatarData = true;
+                        Log.Warn("No saved Beat Saber avatar data was found; clone creation will wait for an avatar save.");
+                    }
+
+                    return null;
+                }
+            }
+
+            if (dataModel.avatarData == null)
+            {
+                LogAvatarDataNotReady(reason, "AvatarDataModel.avatarData was null.");
+                return null;
+            }
+
+            return dataModel;
+        }
+
+        private void LogAvatarDataNotReady(string reason, string message)
+        {
+            if (reason == "timer")
+            {
+                Log.Debug(message);
+                return;
+            }
+
+            if (_loggedAvatarDataNotReady)
+            {
+                return;
+            }
+
+            _loggedAvatarDataNotReady = true;
+            Log.Info(message + " Clone creation is delayed until saved avatar data is ready.");
         }
 
         private BeatAvatarVisualController GetVisualController()
@@ -612,7 +717,7 @@ namespace BetterBSAvatar
             return false;
         }
 
-        private void RefreshVisualFromAvatarData(
+        private bool RefreshVisualFromAvatarData(
             AvatarDataModel dataModel,
             BeatAvatarVisualController visualController,
             AvatarData avatarData,
@@ -641,16 +746,20 @@ namespace BetterBSAvatar
                     {
                         Log.Info("Clone visual refreshed from AvatarDataModel.avatarData.");
                     }
+
+                    return true;
                 }
                 catch (Exception exception)
                 {
                     Log.Warn("Avatar data refresh failed; keeping cloned source visual.");
                     Log.Error(exception);
+                    return false;
                 }
             }
             else
             {
                 Log.Warn("AvatarDataModel.avatarData was null; clone visual refresh skipped.");
+                return false;
             }
         }
 
