@@ -59,21 +59,11 @@ namespace BetterBSAvatar
 
         private static void MigrateConfig()
         {
-            if (Config.ConfigVersion < 1)
-            {
-                Config.RefreshCloneFromAvatarData = true;
-                Config.ConfigVersion = 1;
-                Log.Info("Migrated config defaults.");
-            }
-
             if (Config.ConfigVersion < 2)
             {
-                Config.ProbeOnly = false;
-                Config.AutoCloneWhenPossible = true;
-                Config.RefreshCloneFromAvatarData = true;
                 Config.TrackPlayer = true;
                 Config.ConfigVersion = 2;
-                Log.Info("Migrated config for simplified tracked-avatar settings.");
+                Log.Info("Migrated config for tracked-avatar settings.");
             }
         }
     }

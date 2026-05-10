@@ -8,17 +8,9 @@ namespace BetterBSAvatar
 
         public virtual bool Enabled { get; set; } = true;
 
-        public virtual bool ProbeOnly { get; set; } = false;
-
-        public virtual bool AutoCloneWhenPossible { get; set; } = true;
-
         public virtual bool HideFromFirstPersonCamera { get; set; } = true;
 
-        public virtual bool RefreshCloneFromAvatarData { get; set; } = true;
-
         public virtual bool TrackPlayer { get; set; } = true;
-
-        public virtual float ProbeIntervalSeconds { get; set; } = 30.0f;
 
         public virtual float MenuPositionX { get; set; } = 0.0f;
 

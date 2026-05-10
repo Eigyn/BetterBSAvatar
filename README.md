@@ -1,8 +1,14 @@
+![BetterBSAvatar banner](media/BBSA_MainBanner.png)
+
 # BetterBSAvatar
 
 BetterBSAvatar is a PC Beat Saber mod that displays the game's built-in multiplayer avatar in menus and single-player gameplay.
 
-## What It Does
+![BetterBSAvatar menu preview](media/Screenshot0.png)
+
+## Features
+
+![BetterBSAvatar gameplay preview](media/BBSA_Gif.gif)
 
 - Creates and displays your built-in Beat Saber multiplayer avatar outside multiplayer lobbies.
 - Tracks the avatar to your headset and hand/controller positions.
@@ -21,8 +27,8 @@ Standalone Quest/Android builds are not supported.
 ## Installation
 
 1. Install BSIPA and BeatSaberMarkupLanguage for Beat Saber 1.40.8.
-2. Download `BetterBSAvatar.dll` from the release.
-3. Place `BetterBSAvatar.dll` in your Beat Saber `Plugins` folder.
+2. Download the latest `BetterBSAvatar-vX.Y.Z.zip` release.
+3. Extract the zip into your Beat Saber install folder so `BetterBSAvatar.dll` lands in `Plugins`.
 4. Launch Beat Saber.
 5. Open `Mod Settings > BetterBSAvatar`.
 
@@ -30,6 +36,10 @@ Standalone Quest/Android builds are not supported.
 
 - `Enable Avatar`: creates, displays, tracks, and refreshes the avatar.
 - `Show in First Person`: shows the avatar in the headset view. Disable this if you only want the avatar visible to third-person camera setups.
+
+## Patch Notes
+
+See [PATCH_NOTES.md](PATCH_NOTES.md).
 
 ## License
 
