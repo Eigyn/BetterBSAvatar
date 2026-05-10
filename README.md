@@ -1,7 +1,5 @@
 ![BetterBSAvatar banner](media/BBSA_MainBanner.png)
 
-# BetterBSAvatar
-
 BetterBSAvatar is a PC Beat Saber mod that displays the game's built-in multiplayer avatar in menus and single-player gameplay.
 
 ![BetterBSAvatar menu preview](media/Screenshot0.png)
