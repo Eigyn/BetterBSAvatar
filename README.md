@@ -12,6 +12,8 @@ BetterBSAvatar is a PC Beat Saber mod that displays the game's built-in multipla
 - Tracks the avatar to your headset and hand/controller positions.
 - Updates the avatar after changes are applied in Beat Saber's avatar editor.
 - Provides an option to hide the avatar from the first-person headset view for normal play or third-person camera setups.
+- Works with BeatLeader & ScoreSaber replays in FPFC mode!
+- Can be used with Camera2! 
 
 ## Requirements And Platform
 
