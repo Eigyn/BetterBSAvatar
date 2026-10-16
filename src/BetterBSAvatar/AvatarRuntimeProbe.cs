@@ -44,7 +44,7 @@ namespace BetterBSAvatar
 
         private void Update()
         {
-            if (!Plugin.Config.Enabled)
+            if (!Plugin.AvatarEnabled)
             {
                 if (_spawner.HasClone)
                 {
@@ -76,7 +76,7 @@ namespace BetterBSAvatar
             Probe("sceneLoaded:" + scene.name);
             _spawner.InvalidateAvatarDataCache();
             _nextAvatarSyncTime = 0.0f;
-            if (Plugin.Config.Enabled && !_spawner.HasClone)
+            if (Plugin.AvatarEnabled && !_spawner.HasClone)
             {
                 ScheduleCloneReload("sceneLoaded:" + scene.name, SettingsReloadDelaySeconds);
             }
@@ -144,11 +144,6 @@ namespace BetterBSAvatar
             Log.Info(LastStatus);
         }
 
-        internal void ApplyConfiguredTransform()
-        {
-            _spawner.ApplyConfiguredTransformToClone();
-        }
-
         internal void ApplyVisualSettings()
         {
             _spawner.ApplyVisualSettingsToClone();
@@ -173,7 +168,7 @@ namespace BetterBSAvatar
                 return;
             }
 
-            _spawner.ApplyConfiguredTransformToClone();
+            _spawner.EnsureTrackingDriverOnClone();
             if (refreshAvatarData)
             {
                 _spawner.RefreshCloneFromAvatarData(reason);
@@ -185,13 +180,14 @@ namespace BetterBSAvatar
             ScheduleCloneReload(reason, SettingsReloadDelaySeconds);
         }
 
-        internal void RefreshAfterAvatarSave()
+        internal void RefreshAfterAvatarSave(AvatarDataModel model = null)
         {
-            if (!Plugin.Config.Enabled)
+            if (!Plugin.AvatarEnabled)
             {
                 return;
             }
 
+            if (model != null) _spawner.SetAvatarDataModel(model);
             EnsureAvatarVisible("avatar-save", true);
             _nextAvatarSyncTime = Time.unscaledTime + GetAvatarSyncIntervalSeconds();
             LastStatus = "Clone refreshed after avatar save";
@@ -200,7 +196,7 @@ namespace BetterBSAvatar
 
         private void ScheduleCloneReload(string reason, float delaySeconds)
         {
-            if (!Plugin.Config.Enabled)
+            if (!Plugin.AvatarEnabled)
             {
                 return;
             }

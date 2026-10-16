@@ -12,6 +12,15 @@ namespace BetterBSAvatar
         private const string HarmonyId = "Eigyn.BetterBSAvatar.AvatarSaveHooks";
 
         private static Harmony _harmony;
+        private static int _generation;
+
+        private sealed class SaveSnapshot
+        {
+            internal AvatarDataModel Model;
+            internal AvatarData Appearance;
+            internal int Version;
+            internal int Generation;
+        }
 
         internal static void Install()
         {
@@ -26,15 +35,17 @@ namespace BetterBSAvatar
             MethodInfo postfix = typeof(AvatarSaveHooks).GetMethod(
                 nameof(AvatarDataModelSaveAsyncPostfix),
                 BindingFlags.Static | BindingFlags.NonPublic);
+            MethodInfo prefix = AccessTools.Method(typeof(AvatarSaveHooks), nameof(AvatarDataModelSaveAsyncPrefix));
 
-            if (original == null || postfix == null)
+            if (original == null || postfix == null || prefix == null)
             {
                 Log.Warn("Could not install avatar save hook.");
                 return;
             }
 
             _harmony = new Harmony(HarmonyId);
-            _harmony.Patch(original, postfix: new HarmonyMethod(postfix));
+            _generation++;
+            _harmony.Patch(original, prefix: new HarmonyMethod(prefix), postfix: new HarmonyMethod(postfix));
             Log.Info("Installed avatar save hook.");
         }
 
@@ -46,32 +57,50 @@ namespace BetterBSAvatar
             }
 
             _harmony.UnpatchSelf();
+            _generation++;
             _harmony = null;
             Log.Info("Uninstalled avatar save hook.");
         }
 
-        private static void AvatarDataModelSaveAsyncPostfix(Task __result)
+        private static void AvatarDataModelSaveAsyncPrefix(AvatarDataModel __instance, out SaveSnapshot __state)
         {
-            AvatarRuntime.StartPluginCoroutine(RefreshWhenSaveCompletes(__result));
+            __state = new SaveSnapshot
+            {
+                Model = __instance,
+                Appearance = __instance.avatarData?.Clone(),
+                Version = AvatarEditorHooks.SaveStarted(__instance),
+                Generation = _generation
+            };
         }
 
-        private static IEnumerator RefreshWhenSaveCompletes(Task saveTask)
+        private static void AvatarDataModelSaveAsyncPostfix(Task __result, SaveSnapshot __state)
+        {
+            AvatarRuntime.StartPluginCoroutine(RefreshWhenSaveCompletes(__result, __state));
+        }
+
+        private static IEnumerator RefreshWhenSaveCompletes(Task saveTask, SaveSnapshot snapshot)
         {
             while (saveTask != null && !saveTask.IsCompleted)
             {
                 yield return null;
             }
 
-            if (saveTask != null && saveTask.IsFaulted)
+            if (_harmony == null || snapshot.Generation != _generation) yield break;
+
+            if (saveTask == null || saveTask.IsCanceled || saveTask.IsFaulted)
             {
                 Log.Warn("Avatar save failed; clone refresh skipped.");
-                if (saveTask.Exception != null)
+                if (saveTask?.Exception != null)
                 {
                     Log.Error(saveTask.Exception);
                 }
 
                 yield break;
             }
+
+            Task<bool> resultTask = saveTask as Task<bool>;
+            if (resultTask != null && !resultTask.Result) yield break;
+            if (!AvatarEditorHooks.SaveCompleted(snapshot.Model, snapshot.Appearance, snapshot.Version)) yield break;
 
             AvatarRuntimeProbe probe = AvatarRuntimeProbe.Instance;
             if (probe == null)
@@ -81,7 +110,7 @@ namespace BetterBSAvatar
 
             try
             {
-                probe.RefreshAfterAvatarSave();
+                probe.RefreshAfterAvatarSave(snapshot.Model);
             }
             catch (Exception exception)
             {

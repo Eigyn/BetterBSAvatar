@@ -23,5 +23,13 @@ namespace BetterBSAvatar
         {
             base.StartCoroutine(coroutine);
         }
+
+        internal static void Stop()
+        {
+            if (_instance == null) return;
+            _instance.StopAllCoroutines();
+            Object.Destroy(_instance.gameObject);
+            _instance = null;
+        }
     }
 }

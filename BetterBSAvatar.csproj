@@ -12,6 +12,7 @@
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <LangVersion>7.3</LangVersion>
+    <FrameworkPathOverride Condition="'$(FrameworkPathOverride)' == '' and Exists('$(UserProfile)\.nuget\packages\microsoft.netframework.referenceassemblies.net472\1.0.3\build\.NETFramework\v4.7.2')">$(UserProfile)\.nuget\packages\microsoft.netframework.referenceassemblies.net472\1.0.3\build\.NETFramework\v4.7.2</FrameworkPathOverride>
     <GameDir Condition="'$(GameDir)' == '' and '$(BEAT_SABER_DIR)' != ''">$(BEAT_SABER_DIR)</GameDir>
     <ManagedDir>$(GameDir)\Beat Saber_Data\Managed</ManagedDir>
     <PluginDir>$(GameDir)\Plugins</PluginDir>
@@ -40,6 +41,35 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="netstandard">
+      <HintPath>$(ManagedDir)\netstandard.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>$(ManagedDir)\Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BeatSaber.ViewSystem">
+      <HintPath>$(ManagedDir)\BeatSaber.ViewSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="HMUI">
+      <HintPath>$(ManagedDir)\HMUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(ManagedDir)\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(ManagedDir)\UnityEngine.UIModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(ManagedDir)\Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="IPA.Loader">
       <HintPath>$(ManagedDir)\IPA.Loader.dll</HintPath>
       <Private>false</Private>
@@ -103,8 +133,8 @@
     <EmbeddedResource Include="manifest.json">
       <LogicalName>$(AssemblyName).manifest.json</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="Views\settings.bsml">
-      <LogicalName>$(AssemblyName).Views.settings.bsml</LogicalName>
+    <EmbeddedResource Include="Views\*.bsml">
+      <LogicalName>$(AssemblyName).Views.%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 

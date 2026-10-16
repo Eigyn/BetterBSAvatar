@@ -15,6 +15,7 @@ namespace BetterBSAvatar
         private const float VrControllerScanIntervalSeconds = 2.0f;
         private const float MinSaberBladeLength = 0.05f;
         private const float MinViewAnchorOffsetAngleDegrees = 1.0f;
+        private const float AvatarScale = 1.0f;
 
         private static Quaternion _capturedLeftViewAnchorOffset = Quaternion.identity;
         private static Quaternion _capturedRightViewAnchorOffset = Quaternion.identity;
@@ -96,7 +97,7 @@ namespace BetterBSAvatar
 
         private void LateUpdate()
         {
-            if (!Plugin.Config.TrackPlayer || _clone == null)
+            if (_clone == null)
             {
                 return;
             }
@@ -159,7 +160,7 @@ namespace BetterBSAvatar
 
             transform.position = Vector3.zero;
             transform.rotation = Quaternion.identity;
-            transform.localScale = Vector3.one * Plugin.Config.MenuScale;
+            transform.localScale = Vector3.one * AvatarScale;
 
             if (!_loggedMenuPoseSource)
             {
@@ -198,7 +199,7 @@ namespace BetterBSAvatar
 
                 transform.position = trackingRoot.position;
                 transform.rotation = trackingRoot.rotation;
-                transform.localScale = Vector3.one * Plugin.Config.MenuScale;
+                transform.localScale = Vector3.one * AvatarScale;
             }
 
             if (!_loggedPoseSource)
@@ -248,7 +249,7 @@ namespace BetterBSAvatar
 
                 transform.position = trackingRoot.position;
                 transform.rotation = trackingRoot.rotation;
-                transform.localScale = Vector3.one * Plugin.Config.MenuScale;
+                transform.localScale = Vector3.one * AvatarScale;
             }
             else
             {
@@ -259,7 +260,7 @@ namespace BetterBSAvatar
 
                 transform.position = Vector3.zero;
                 transform.rotation = Quaternion.identity;
-                transform.localScale = Vector3.one * Plugin.Config.MenuScale;
+                transform.localScale = Vector3.one * AvatarScale;
             }
 
             if (!_loggedPoseSource)

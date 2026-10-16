@@ -41,11 +41,11 @@ namespace BetterBSAvatar
 
         internal bool HasClone => _clone != null;
 
-        internal void ApplyConfiguredTransformToClone()
+        internal void EnsureTrackingDriverOnClone()
         {
             if (_clone != null)
             {
-                ApplyPlacementMode(_clone);
+                EnsureTrackingDriver(_clone).enabled = true;
             }
         }
 
@@ -53,7 +53,7 @@ namespace BetterBSAvatar
         {
             if (_clone != null)
             {
-                ApplyPlacementMode(_clone);
+                EnsureTrackingDriverOnClone();
                 PrepareCloneForViewing(_clone, false);
                 return true;
             }
@@ -74,7 +74,7 @@ namespace BetterBSAvatar
                 return false;
             }
 
-            AvatarData avatarData = dataModel.avatarData;
+            AvatarData avatarData = AvatarEditorHooks.GetDisplayAvatarData(dataModel);
             GameObject source = FindBestSourceAvatar();
             if (source == null)
             {
@@ -105,7 +105,7 @@ namespace BetterBSAvatar
                 return false;
             }
 
-            ApplyPlacementMode(_clone);
+            EnsureTrackingDriverOnClone();
             PrepareCloneForViewing(_clone, true);
             _clone.SetActive(true);
             Log.Info($"Clone source: {DescribeGameObject(source)}");
@@ -131,6 +131,11 @@ namespace BetterBSAvatar
             _avatarDataModel = null;
             _loggedAvatarDataNotReady = false;
             _loggedNoSavedAvatarData = false;
+        }
+
+        internal void SetAvatarDataModel(AvatarDataModel model)
+        {
+            _avatarDataModel = model;
         }
 
         internal bool HasBrokenRendererMaterials()
@@ -188,7 +193,7 @@ namespace BetterBSAvatar
             _refreshRunning = true;
             try
             {
-                RefreshVisualFromAvatarData(dataModel, visualController, dataModel.avatarData, reason);
+                RefreshVisualFromAvatarData(dataModel, visualController, AvatarEditorHooks.GetDisplayAvatarData(dataModel), reason);
             }
             finally
             {
@@ -423,31 +428,6 @@ namespace BetterBSAvatar
             return path;
         }
 
-        private static void ApplyConfiguredTransform(Transform transform)
-        {
-            PluginConfig config = Plugin.Config;
-            transform.SetParent(null, false);
-            transform.gameObject.SetActive(true);
-            transform.position = config.MenuPosition;
-            transform.rotation = Quaternion.Euler(0.0f, config.MenuYawDegrees, 0.0f);
-            transform.localScale = Vector3.one * config.MenuScale;
-        }
-
-        private static void ApplyPlacementMode(GameObject clone)
-        {
-            if (clone == null)
-            {
-                return;
-            }
-
-            AvatarTrackedPoseDriver trackingDriver = EnsureTrackingDriver(clone);
-            trackingDriver.enabled = Plugin.Config.TrackPlayer;
-            if (!Plugin.Config.TrackPlayer)
-            {
-                ApplyConfiguredTransform(clone.transform);
-            }
-        }
-
         private static AvatarTrackedPoseDriver EnsureTrackingDriver(GameObject clone)
         {
             AvatarTrackedPoseDriver trackingDriver = clone.GetComponent<AvatarTrackedPoseDriver>();
@@ -490,7 +470,7 @@ namespace BetterBSAvatar
 
         private static void PrepareRenderers(GameObject avatar, bool log)
         {
-            int layer = Plugin.Config.HideFromFirstPersonCamera ? 3 : 0;
+            int layer = Plugin.HideFromFirstPersonCamera ? 3 : 0;
             HashSet<Renderer> avatarRenderers = CollectAvatarVisualRenderers(avatar);
             foreach (Renderer renderer in avatar.GetComponentsInChildren<Renderer>(true))
             {

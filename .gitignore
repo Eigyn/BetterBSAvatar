@@ -19,3 +19,9 @@ Logs/
 *.il
 *.res
 *.zip
+.local-validation/
+
+# Local tests, verification notes, and implementation plans.
+/tests/
+/VALIDATION.md
+/UPDATE_PLAN.md

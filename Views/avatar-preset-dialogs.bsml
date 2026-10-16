@@ -1,0 +1,20 @@
+<bg>
+  <modal-keyboard id='name-keyboard' value='name-input' on-enter='name-entered' click-off-closes='true' />
+  <modal id='confirmation' size-delta='86 35' click-off-closes='true'>
+    <text text='~confirmation-text' rich-text='false' font-size='4' align='Center'
+          anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='0 5' size-delta='80 17' />
+    <button text='Cancel' on-click='cancel-confirmation'
+            anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='-17 -10' size-delta='30 8'
+            horizontal-fit='Unconstrained' vertical-fit='Unconstrained' />
+    <button text='Confirm' on-click='confirm-operation'
+            anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='17 -10' size-delta='30 8'
+            horizontal-fit='Unconstrained' vertical-fit='Unconstrained' />
+  </modal>
+  <modal id='error-modal' size-delta='86 40' click-off-closes='true'>
+    <text text='~error-message' rich-text='false' font-size='3.5' align='Center'
+          anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='0 5' size-delta='80 23' />
+    <button text='OK' on-click='dismiss-error'
+            anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='0 -13' size-delta='30 8'
+            horizontal-fit='Unconstrained' vertical-fit='Unconstrained' />
+  </modal>
+</bg>

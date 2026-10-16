@@ -1,0 +1,23 @@
+<bg>
+  <text text='Saved Avatars' font-size='3.5' align='Center' font-color='#FFFFFF88'
+        anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='0 29' size-delta='71 6' />
+  <button id='previous-button' text='‹' on-click='previous-avatar' font-size='5' interactable='~can-browse'
+          anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='-29 18' size-delta='10 8'
+          horizontal-fit='Unconstrained' vertical-fit='Unconstrained'
+          hover-hint='Previous saved avatar. Use Apply to keep the loaded appearance.' />
+  <clickable-text id='preset-name' text='~preset-name' on-click='rename-avatar' font-size='4' align='Center' rich-text='false'
+                  anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='0 18' size-delta='45 8'
+                  hover-hint='Click a saved avatar name to rename it. An asterisk means you have unsaved appearance changes.' />
+  <button id='next-button' text='›' on-click='next-avatar' font-size='5' interactable='~can-browse'
+          anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='29 18' size-delta='10 8'
+          horizontal-fit='Unconstrained' vertical-fit='Unconstrained'
+          hover-hint='Next saved avatar. Use Apply to keep the loaded appearance.' />
+  <button text='Save' on-click='save-avatar' font-size='3.5' interactable='~can-save'
+          anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='-16 6' size-delta='30 8'
+          horizontal-fit='Unconstrained' vertical-fit='Unconstrained'
+          hover-hint='Save the appearance currently shown in the editor. Enter a new name to save a copy.' />
+  <button text='Delete' on-click='delete-avatar' font-size='3.5' interactable='~can-delete'
+          anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='16 6' size-delta='30 8'
+          horizontal-fit='Unconstrained' vertical-fit='Unconstrained'
+          hover-hint='Delete this saved entry. Your active avatar will stay unchanged.' />
+</bg>

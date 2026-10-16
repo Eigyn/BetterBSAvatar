@@ -1,0 +1,10 @@
+<bg anchor-min='0.5 0.5' anchor-max='0.5 0.5' size-delta='85 80'>
+  <bg background='title-gradient' anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='0 34' size-delta='85 8'>
+    <text text='BetterBSAvatar' font-size='4.5' align='Center'
+          anchor-min='0 0' anchor-max='1 1' size-delta='0 0' />
+  </bg>
+  <scroll-view anchor-min='0.5 0.5' anchor-max='0.5 0.5' anchored-position='0 -6' size-delta='85 66'
+               child-control-height='false' child-control-width='false' spacing='0'>
+    <bg id='menu-body' size-delta='71 76' horizontal-fit='Unconstrained' vertical-fit='Unconstrained' />
+  </scroll-view>
+</bg>

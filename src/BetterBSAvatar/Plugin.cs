@@ -13,13 +13,15 @@ namespace BetterBSAvatar
         private GameObject _host;
 
         internal static PluginConfig Config { get; private set; }
+        internal static bool AvatarEnabled => SettingsMenuHost.Active?.EnableAvatar ?? Config.Enabled;
+        internal static bool HideFromFirstPersonCamera => SettingsMenuHost.Active != null
+            ? !SettingsMenuHost.Active.ShowFirstPerson : Config.HideFromFirstPersonCamera;
 
         [Init]
         public Plugin(IPALogger logger, Config config)
         {
             Log.Init(logger);
             Config = config.Generated<PluginConfig>();
-            MigrateConfig();
             Log.Info("Initialized");
         }
 
@@ -28,8 +30,8 @@ namespace BetterBSAvatar
         {
             Log.Info("Enabled");
             AvatarSaveHooks.Install();
+            AvatarEditorHooks.Install();
             CreateHost();
-            AvatarRuntime.StartPluginCoroutine(SettingsRegistrar.RegisterWhenReady());
         }
 
         [OnDisable]
@@ -37,7 +39,8 @@ namespace BetterBSAvatar
         {
             Log.Info("Disabled");
             AvatarSaveHooks.Uninstall();
-            SettingsRegistrar.Unregister();
+            AvatarEditorHooks.Uninstall();
+            AvatarRuntime.Stop();
             if (_host != null)
             {
                 Object.Destroy(_host);
@@ -55,16 +58,6 @@ namespace BetterBSAvatar
             _host = new GameObject("BetterBSAvatar");
             Object.DontDestroyOnLoad(_host);
             _host.AddComponent<AvatarRuntimeProbe>();
-        }
-
-        private static void MigrateConfig()
-        {
-            if (Config.ConfigVersion < 2)
-            {
-                Config.TrackPlayer = true;
-                Config.ConfigVersion = 2;
-                Log.Info("Migrated config for tracked-avatar settings.");
-            }
         }
     }
 }
