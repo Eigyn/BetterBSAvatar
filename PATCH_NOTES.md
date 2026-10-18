@@ -1,5 +1,10 @@
 # Patch Notes
 
+## v0.2.1
+
+- Fixed avatar head/body offsets after multiplayer and headset-dashboard focus changes by rejecting inactive, unloaded, and remote player rigs and refreshing tracking sources across scene changes.
+- Avatar poses now use a consistent world-to-avatar conversion; fallback head tracking follows the current main camera, and logs record pose-source changes.
+
 ## v0.2.0
 
 - Added named appearance presets with previous/next arrows, Save, Delete, rename, and confirmed overwrites in the native Avatar editor.

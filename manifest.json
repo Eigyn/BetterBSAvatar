@@ -1,9 +1,9 @@
-﻿{
+{
   "$schema": "https://raw.githubusercontent.com/beat-saber-modding-group/BSIPA-MetadataFileSchema/master/Schema.json",
   "id": "BetterBSAvatar",
   "name": "BetterBSAvatar",
   "author": "Eigyn",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Displays the built-in multiplayer avatar in menus and gameplay, with saved avatar appearances and settings in the native Avatar editor.",
   "gameVersion": "1.40.8",
   "links": {

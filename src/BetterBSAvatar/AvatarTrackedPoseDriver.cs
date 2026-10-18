@@ -1,4 +1,4 @@
-﻿using BeatSaber.BeatAvatarSDK;
+using BeatSaber.BeatAvatarSDK;
 using System;
 using System.Reflection;
 using UnityEngine;
@@ -28,6 +28,15 @@ namespace BetterBSAvatar
         private static readonly FieldInfo OriginField = typeof(PlayerTransforms).GetField(
             "_originTransform",
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        private static readonly FieldInfo PlayerHeadTransformField = typeof(PlayerTransforms).GetField(
+            "_headTransform",
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        private static readonly FieldInfo PlayerLeftHandTransformField = typeof(PlayerTransforms).GetField(
+            "_leftHandTransform",
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        private static readonly FieldInfo PlayerRightHandTransformField = typeof(PlayerTransforms).GetField(
+            "_rightHandTransform",
+            BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
         private static readonly FieldInfo HeadTransformField = typeof(BeatAvatarPoseController).GetField(
             "_headTransform",
             BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
@@ -52,15 +61,14 @@ namespace BetterBSAvatar
         private SaberManager _saberManager;
         private VRController _leftVrController;
         private VRController _rightVrController;
-        private Transform _trackingRoot;
-        private Transform _fallbackCameraTransform;
+        private Transform _playerRigCameraTransform;
         private float _nextPlayerTransformsScanTime;
         private float _nextMenuPlayerControllerScanTime;
         private float _nextSaberManagerScanTime;
         private float _nextVrControllerScanTime;
-        private bool _loggedPoseSource;
+        private string _poseSource;
+        private UnityEngine.Object _poseSourceObject;
         private bool _loggedSaberPoseSource;
-        private bool _loggedMenuPoseSource;
         private bool _loggedHandRotationCorrection;
         private bool _loggedMissingPose;
         private bool _poseControllerFailed;
@@ -80,19 +88,55 @@ namespace BetterBSAvatar
             _saberManager = null;
             _leftVrController = null;
             _rightVrController = null;
-            _trackingRoot = null;
-            _fallbackCameraTransform = null;
+            _playerRigCameraTransform = null;
             _nextPlayerTransformsScanTime = 0.0f;
             _nextMenuPlayerControllerScanTime = 0.0f;
             _nextSaberManagerScanTime = 0.0f;
             _nextVrControllerScanTime = 0.0f;
-            _loggedPoseSource = false;
+            _poseSource = null;
+            _poseSourceObject = null;
             _loggedSaberPoseSource = false;
-            _loggedMenuPoseSource = false;
             _loggedHandRotationCorrection = false;
             _loggedMissingPose = false;
             _poseControllerFailed = false;
             ClearGameplaySaberState();
+        }
+
+        private void OnEnable()
+        {
+            SceneManager.sceneLoaded += HandleSceneLoaded;
+            SceneManager.sceneUnloaded += HandleSceneUnloaded;
+            InvalidateTrackingSources();
+        }
+
+        private void OnDisable()
+        {
+            SceneManager.sceneLoaded -= HandleSceneLoaded;
+            SceneManager.sceneUnloaded -= HandleSceneUnloaded;
+        }
+
+        private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            InvalidateTrackingSources();
+        }
+
+        private void HandleSceneUnloaded(Scene scene)
+        {
+            InvalidateTrackingSources();
+        }
+
+        private void InvalidateTrackingSources()
+        {
+            _playerTransforms = null;
+            _playerRigCameraTransform = null;
+            _menuPlayerController = null;
+            _saberManager = null;
+            _leftVrController = null;
+            _rightVrController = null;
+            _nextPlayerTransformsScanTime = 0.0f;
+            _nextMenuPlayerControllerScanTime = 0.0f;
+            _nextSaberManagerScanTime = 0.0f;
+            _nextVrControllerScanTime = 0.0f;
         }
 
         private void LateUpdate()
@@ -103,27 +147,30 @@ namespace BetterBSAvatar
             }
 
             bool gameplaySceneLoaded = IsGameplaySaberSceneLoaded();
+            Transform cameraTransform = GetActiveMainCameraTransform();
             if (!gameplaySceneLoaded)
             {
                 ClearGameplaySaberState();
+                _playerTransforms = null;
+                _playerRigCameraTransform = null;
             }
 
-            if (gameplaySceneLoaded && HasActiveGameplaySabers() && TryUpdateFromPlayerTransforms())
+            if (gameplaySceneLoaded && TryUpdateFromPlayerTransforms(cameraTransform))
             {
                 return;
             }
 
-            if (TryUpdateFromMenuPlayerController())
+            if (!gameplaySceneLoaded && TryUpdateFromMenuPlayerController())
             {
                 return;
             }
 
-            if (TryUpdateFromPlayerTransforms())
+            if (TryUpdateFromCameraAndXrNodes(cameraTransform))
             {
                 return;
             }
 
-            TryUpdateFromXrNodes();
+            LogPoseSource("none", null);
         }
 
         private bool TryUpdateFromMenuPlayerController()
@@ -162,56 +209,43 @@ namespace BetterBSAvatar
             transform.rotation = Quaternion.identity;
             transform.localScale = Vector3.one * AvatarScale;
 
-            if (!_loggedMenuPoseSource)
-            {
-                _loggedMenuPoseSource = true;
-                Log.Info("Tracking clone from Beat Saber MenuPlayerController.");
-            }
-
             Quaternion inverseRootRotation = Quaternion.Inverse(transform.rotation);
-            return ApplyLocalPose(
+            bool applied = ApplyLocalPose(
                 transform.InverseTransformPoint(menuPlayerController.headPos),
                 transform.InverseTransformPoint(leftHandPosition),
                 transform.InverseTransformPoint(rightHandPosition),
                 inverseRootRotation * menuPlayerController.headRot,
                 inverseRootRotation * leftHandRotation,
                 inverseRootRotation * rightHandRotation);
+            if (applied)
+            {
+                LogPoseSource("MenuPlayerController", menuPlayerController);
+            }
+
+            return applied;
         }
 
-        private bool TryUpdateFromPlayerTransforms()
+        private bool TryUpdateFromPlayerTransforms(Transform cameraTransform)
         {
-            PlayerTransforms playerTransforms = GetCachedPlayerTransforms();
+            PlayerTransforms playerTransforms = GetCachedPlayerTransforms(cameraTransform);
             if (playerTransforms == null)
             {
                 return false;
             }
 
-            Transform trackingRoot = _trackingRoot != null
-                ? _trackingRoot
-                : GetTrackingRoot(playerTransforms);
-            if (trackingRoot != null)
+            Transform leftHand = GetPlayerTransform(playerTransforms, PlayerLeftHandTransformField);
+            Transform rightHand = GetPlayerTransform(playerTransforms, PlayerRightHandTransformField);
+            if (leftHand == null || rightHand == null)
             {
-                _trackingRoot = trackingRoot;
-                if (transform.parent != null)
-                {
-                    transform.SetParent(null, false);
-                }
-
-                transform.position = trackingRoot.position;
-                transform.rotation = trackingRoot.rotation;
-                transform.localScale = Vector3.one * AvatarScale;
+                return false;
             }
 
-            if (!_loggedPoseSource)
-            {
-                _loggedPoseSource = true;
-                Log.Info("Tracking clone from Beat Saber PlayerTransforms.");
-            }
-
-            Vector3 leftHandPosition = playerTransforms.leftHandPseudoLocalPos;
-            Vector3 rightHandPosition = playerTransforms.rightHandPseudoLocalPos;
-            Quaternion leftHandRotation = playerTransforms.leftHandPseudoLocalRot;
-            Quaternion rightHandRotation = playerTransforms.rightHandPseudoLocalRot;
+            SetTrackingRoot(GetTrackingRoot(playerTransforms));
+            Quaternion inverseRootRotation = Quaternion.Inverse(transform.rotation);
+            Vector3 leftHandPosition = transform.InverseTransformPoint(leftHand.position);
+            Vector3 rightHandPosition = transform.InverseTransformPoint(rightHand.position);
+            Quaternion leftHandRotation = inverseRootRotation * leftHand.rotation;
+            Quaternion rightHandRotation = inverseRootRotation * rightHand.rotation;
             ApplyViewAnchorRotationOverride(ref leftHandRotation, ref rightHandRotation);
             ApplySaberPoseOverrides(
                 ref leftHandPosition,
@@ -219,60 +253,49 @@ namespace BetterBSAvatar
                 ref leftHandRotation,
                 ref rightHandRotation);
 
-            return ApplyLocalPose(
-                playerTransforms.headPseudoLocalPos,
+            bool applied = ApplyLocalPose(
+                transform.InverseTransformPoint(playerTransforms.headWorldPos),
                 leftHandPosition,
                 rightHandPosition,
-                playerTransforms.headPseudoLocalRot,
+                inverseRootRotation * playerTransforms.headWorldRot,
                 leftHandRotation,
                 rightHandRotation);
+            if (applied)
+            {
+                LogPoseSource("PlayerTransforms", playerTransforms);
+            }
+
+            return applied;
         }
 
-        private bool TryUpdateFromXrNodes()
+        private bool TryUpdateFromCameraAndXrNodes(Transform cameraTransform)
         {
-            if (_fallbackCameraTransform == null)
+            if (cameraTransform == null)
             {
-                Camera camera = Camera.main;
-                _fallbackCameraTransform = camera != null ? camera.transform : null;
+                return false;
             }
 
-            Transform trackingRoot = _fallbackCameraTransform != null && _fallbackCameraTransform.parent != null
-                ? _fallbackCameraTransform.parent
-                : null;
-
-            if (trackingRoot != null)
-            {
-                if (transform.parent != null)
-                {
-                    transform.SetParent(null, false);
-                }
-
-                transform.position = trackingRoot.position;
-                transform.rotation = trackingRoot.rotation;
-                transform.localScale = Vector3.one * AvatarScale;
-            }
-            else
-            {
-                if (transform.parent != null)
-                {
-                    transform.SetParent(null, false);
-                }
-
-                transform.position = Vector3.zero;
-                transform.rotation = Quaternion.identity;
-                transform.localScale = Vector3.one * AvatarScale;
-            }
-
-            if (!_loggedPoseSource)
-            {
-                _loggedPoseSource = true;
-                Log.Info("Tracking clone from Unity XR nodes.");
-            }
+            Transform trackingRoot = cameraTransform.parent;
+            SetTrackingRoot(trackingRoot);
 
             Vector3 leftHandPosition = GetDevicePosition(XRNode.LeftHand);
             Vector3 rightHandPosition = GetDevicePosition(XRNode.RightHand);
             Quaternion leftHandRotation = GetDeviceRotation(XRNode.LeftHand);
             Quaternion rightHandRotation = GetDeviceRotation(XRNode.RightHand);
+            // XR hands are in tracking space; include the camera parent's world scale and offset.
+            if (trackingRoot != null)
+            {
+                leftHandPosition = trackingRoot.TransformPoint(leftHandPosition);
+                rightHandPosition = trackingRoot.TransformPoint(rightHandPosition);
+                leftHandRotation = trackingRoot.rotation * leftHandRotation;
+                rightHandRotation = trackingRoot.rotation * rightHandRotation;
+            }
+
+            Quaternion inverseRootRotation = Quaternion.Inverse(transform.rotation);
+            leftHandPosition = transform.InverseTransformPoint(leftHandPosition);
+            rightHandPosition = transform.InverseTransformPoint(rightHandPosition);
+            leftHandRotation = inverseRootRotation * leftHandRotation;
+            rightHandRotation = inverseRootRotation * rightHandRotation;
             ApplyViewAnchorRotationOverride(ref leftHandRotation, ref rightHandRotation);
             ApplySaberPoseOverrides(
                 ref leftHandPosition,
@@ -280,13 +303,62 @@ namespace BetterBSAvatar
                 ref leftHandRotation,
                 ref rightHandRotation);
 
-            return ApplyLocalPose(
-                GetDevicePosition(XRNode.Head),
+            bool applied = ApplyLocalPose(
+                transform.InverseTransformPoint(cameraTransform.position),
                 leftHandPosition,
                 rightHandPosition,
-                GetDeviceRotation(XRNode.Head),
+                inverseRootRotation * cameraTransform.rotation,
                 leftHandRotation,
                 rightHandRotation);
+            if (applied)
+            {
+                LogPoseSource("Camera + XR nodes", cameraTransform);
+            }
+
+            return applied;
+        }
+
+        private void SetTrackingRoot(Transform trackingRoot)
+        {
+            if (transform.parent != null)
+            {
+                transform.SetParent(null, false);
+            }
+
+            transform.position = trackingRoot != null ? trackingRoot.position : Vector3.zero;
+            transform.rotation = trackingRoot != null ? trackingRoot.rotation : Quaternion.identity;
+            transform.localScale = Vector3.one * AvatarScale;
+        }
+
+        private static Transform GetActiveMainCameraTransform()
+        {
+            Camera camera = Camera.main;
+            return camera != null && camera.isActiveAndEnabled && camera.gameObject.scene.IsValid() &&
+                camera.gameObject.scene.isLoaded ? camera.transform : null;
+        }
+
+        private void LogPoseSource(string source, Component sourceObject)
+        {
+            if (_poseSource == source && _poseSourceObject == sourceObject)
+            {
+                return;
+            }
+
+            _poseSource = source;
+            _poseSourceObject = sourceObject;
+            if (sourceObject == null)
+            {
+                Log.Info("Avatar pose source: none (waiting for a local player rig or main camera).");
+                return;
+            }
+
+            string path = sourceObject.name;
+            for (Transform parent = sourceObject.transform.parent; parent != null; parent = parent.parent)
+            {
+                path = parent.name + "/" + path;
+            }
+
+            Log.Info($"Avatar pose source: {source} ({sourceObject.gameObject.scene.name}/{path}, id={sourceObject.GetInstanceID()}).");
         }
 
         private static Vector3 GetDevicePosition(XRNode node)
@@ -537,43 +609,77 @@ namespace BetterBSAvatar
                 : saber.transform.position;
         }
 
-        private PlayerTransforms GetCachedPlayerTransforms()
+        private PlayerTransforms GetCachedPlayerTransforms(Transform cameraTransform)
         {
-            if (_playerTransforms != null)
+            bool cachedRigUsable = GetPlayerRigPriority(_playerTransforms, cameraTransform) > 0;
+            if (!PlayerRigSelection.ShouldScan(
+                !ReferenceEquals(_playerTransforms, null),
+                cachedRigUsable,
+                _playerRigCameraTransform != cameraTransform,
+                Time.unscaledTime,
+                _nextPlayerTransformsScanTime))
             {
-                return _playerTransforms;
-            }
-
-            if (Time.unscaledTime < _nextPlayerTransformsScanTime)
-            {
-                return null;
+                return cachedRigUsable ? _playerTransforms : null;
             }
 
             _nextPlayerTransformsScanTime = Time.unscaledTime + PlayerTransformsScanIntervalSeconds;
-            _playerTransforms = FindBestPlayerTransforms();
-            _trackingRoot = _playerTransforms != null ? GetTrackingRoot(_playerTransforms) : null;
+            _playerRigCameraTransform = cameraTransform;
+            _playerTransforms = FindBestPlayerTransforms(cameraTransform, _playerTransforms);
             return _playerTransforms;
         }
 
-        private static PlayerTransforms FindBestPlayerTransforms()
+        private static PlayerTransforms FindBestPlayerTransforms(Transform cameraTransform, PlayerTransforms preferred)
         {
-            PlayerTransforms[] playerTransforms = Resources.FindObjectsOfTypeAll<PlayerTransforms>();
-            PlayerTransforms best = null;
-            foreach (PlayerTransforms transforms in playerTransforms)
+            int bestPriority = GetPlayerRigPriority(preferred, cameraTransform);
+            PlayerTransforms best = bestPriority > 0 ? preferred : null;
+            foreach (PlayerTransforms transforms in Resources.FindObjectsOfTypeAll<PlayerTransforms>())
             {
-                if (transforms == null)
+                int priority = GetPlayerRigPriority(transforms, cameraTransform);
+                if (priority > bestPriority)
                 {
-                    continue;
-                }
-
-                if (best == null ||
-                    (transforms.gameObject.activeInHierarchy && !best.gameObject.activeInHierarchy))
-                {
+                    bestPriority = priority;
                     best = transforms;
                 }
             }
 
             return best;
+        }
+
+        private static int GetPlayerRigPriority(PlayerTransforms playerTransforms, Transform cameraTransform)
+        {
+            if (playerTransforms == null)
+            {
+                return 0;
+            }
+
+            Transform head = GetPlayerTransform(playerTransforms, PlayerHeadTransformField);
+            Transform origin = GetPlayerTransform(playerTransforms, OriginField);
+            Scene scene = playerTransforms.gameObject.scene;
+            // BeatLeader can disable the original camera and replace the head during replay playback.
+            // MainCamera remains a local-rig marker even when it is inactive; the rig itself must be live.
+            MainCamera localCamera = origin != null
+                ? origin.GetComponentInChildren<MainCamera>(true)
+                : (head != null ? head.GetComponentInChildren<MainCamera>(true) : null);
+            bool connectedPlayer = playerTransforms.GetComponentInParent<MultiplayerConnectedPlayerFacade>() != null ||
+                (head != null && head.GetComponentInParent<MultiplayerConnectedPlayerFacade>() != null);
+            bool headContainsCamera = cameraTransform != null && head != null && cameraTransform.IsChildOf(head);
+            bool originContainsCamera = cameraTransform != null && origin != null && cameraTransform.IsChildOf(origin);
+            return PlayerRigSelection.GetPriority(
+                IsGameplaySaberSceneLoaded(),
+                playerTransforms.isActiveAndEnabled,
+                scene.IsValid() && scene.isLoaded,
+                scene.name,
+                PlayerRigSelection.IsLocalRig(
+                    headContainsCamera,
+                    originContainsCamera,
+                    localCamera != null,
+                    connectedPlayer),
+                headContainsCamera || originContainsCamera);
+        }
+
+        private static Transform GetPlayerTransform(PlayerTransforms playerTransforms, FieldInfo field)
+        {
+            return field != null ? field.GetValue(playerTransforms) as Transform : null;
         }
 
         private MenuPlayerController GetCachedMenuPlayerController()
@@ -642,21 +748,9 @@ namespace BetterBSAvatar
             return true;
         }
 
-        private bool HasActiveGameplaySabers()
-        {
-            SaberManager saberManager = GetCachedSaberManager();
-            return saberManager != null &&
-                (IsActiveSaber(saberManager.leftSaber) || IsActiveSaber(saberManager.rightSaber));
-        }
-
-        private static bool IsActiveSaber(Saber saber)
-        {
-            return saber != null && saber.gameObject.activeInHierarchy;
-        }
-
         private SaberManager GetCachedSaberManager()
         {
-            if (_saberManager != null && _saberManager.gameObject.activeInHierarchy)
+            if (IsUsableSaberManager(_saberManager))
             {
                 return _saberManager;
             }
@@ -675,17 +769,16 @@ namespace BetterBSAvatar
 
         private static SaberManager FindBestSaberManager()
         {
-            SaberManager[] saberManagers = Resources.FindObjectsOfTypeAll<SaberManager>();
             SaberManager best = null;
-            foreach (SaberManager manager in saberManagers)
+            foreach (SaberManager manager in Resources.FindObjectsOfTypeAll<SaberManager>())
             {
-                if (manager == null)
+                if (!IsUsableSaberManager(manager))
                 {
                     continue;
                 }
 
-                if (best == null ||
-                    (manager.gameObject.activeInHierarchy && !best.gameObject.activeInHierarchy))
+                if (best == null || (PlayerRigSelection.IsGameplayScene(manager.gameObject.scene.name) &&
+                    !PlayerRigSelection.IsGameplayScene(best.gameObject.scene.name)))
                 {
                     best = manager;
                 }
@@ -694,13 +787,18 @@ namespace BetterBSAvatar
             return best;
         }
 
+        private static bool IsUsableSaberManager(SaberManager manager)
+        {
+            return manager != null && manager.isActiveAndEnabled && manager.gameObject.scene.IsValid() &&
+                manager.gameObject.scene.isLoaded && manager.GetComponentInParent<MultiplayerConnectedPlayerFacade>() == null;
+        }
+
         private static bool IsGameplaySaberSceneLoaded()
         {
             for (int i = 0; i < SceneManager.sceneCount; i++)
             {
-                string sceneName = SceneManager.GetSceneAt(i).name;
-                if (string.Equals(sceneName, "GameCore", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(sceneName, "StandardGameplay", StringComparison.OrdinalIgnoreCase))
+                Scene scene = SceneManager.GetSceneAt(i);
+                if (scene.isLoaded && PlayerRigSelection.IsGameplayScene(scene.name))
                 {
                     return true;
                 }
